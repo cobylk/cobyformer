@@ -1,9 +1,11 @@
 import numpy as np
 
+DEFAULT_DTYPE = np.float32
+
 
 class Tensor:
-    def __init__(self, data, _children=(), requires_grad=True):
-        self.data = np.array(data, dtype=float)
+    def __init__(self, data, _children=(), requires_grad=True, dtype=None):
+        self.data = np.array(data, dtype=dtype if dtype is not None else DEFAULT_DTYPE)
         self.grad = np.zeros_like(self.data)
         self.shape = self.data.shape
         self.size = self.data.size
@@ -212,7 +214,9 @@ class Tensor:
         out = Tensor(np.maximum(0.0, self.data), _children=(self,))
 
         def _backward():
-            self.accumulate_grad(lambda: (out.data > 0).astype(float) * out.grad)
+            self.accumulate_grad(
+                lambda: (out.data > 0).astype(out.data.dtype) * out.grad
+            )
 
         out._backward = _backward
         return out
@@ -259,7 +263,7 @@ class Tensor:
         return out
 
     def softmax(self, axis=-1, keepdims=True):
-        c = Tensor(np.max(self.data))
+        c = Tensor(np.max(self.data, axis, keepdims=True))
         denom = (self - c).exp().sum(axis, keepdims)
         return (self - c).exp() / denom
 
@@ -267,7 +271,7 @@ class Tensor:
         return self - self.logsumexp(axis, keepdims)
 
     def logsumexp(self, axis=-1, keepdims=True):
-        c = Tensor(np.max(self.data))
+        c = Tensor(np.max(self.data, axis, keepdims=True))
         return c + (self - c).exp().sum(axis, keepdims).log()
 
     def unbroadcast(self, array, shape):

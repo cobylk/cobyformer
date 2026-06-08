@@ -9,6 +9,7 @@ class Optimizer(ABC):
         self.st = {}
         for group in self.param_groups:
             assert group.get("params") is not None
+            group["params"] = list(group["params"])
             group.setdefault("lr", 1e-3)
 
     @abstractmethod
